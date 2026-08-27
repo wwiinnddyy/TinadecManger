@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>TinadecManger.App</RootNamespace>
+    <AssemblyTitle>TinadecManger</AssemblyTitle>
+    <ApplicationIcon>$(MSBuildThisFileDirectory)..\..\assets\tinadec-large.ico</ApplicationIcon>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <MewUIBackend>Direct2D</MewUIBackend>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aprillz.MewUI" Version="0.20.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TinadecManger.Core\TinadecManger.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\assets\**" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
+  </ItemGroup>
+
+</Project>

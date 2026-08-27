@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TinadecManger.Core/TinadecManger.Core.csproj" />
+    <Project Path="src/TinadecManger.App/TinadecManger.App.csproj" />
+  </Folder>
+</Solution>
