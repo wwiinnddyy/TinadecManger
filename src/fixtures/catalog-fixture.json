@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-30T00:00:00.000Z",
+  "products": [
+    {
+      "id": "tinadec-core",
+      "name": "TinadecCore",
+      "family": "core",
+      "description": "智能体编排与治理服务（fixture 提供版本）。",
+      "delivery": "dotnet-publish-dir",
+      "probe": "http-health",
+      "probeTarget": "http://127.0.0.1:48731/api/v1/health",
+      "expectedArtifact": "TinadecCore.Api.exe",
+      "allowMultipleInstances": false,
+      "supportsStandaloneLaunch": true,
+      "releases": [
+        {
+          "id": "tinadec-core-1.4.2",
+          "version": "1.4.2",
+          "channel": "stable",
+          "publishedAt": "2026-08-01T00:00:00.000Z",
+          "artifacts": [
+            {
+              "id": "tinadec-core-1.4.2-win-x64",
+              "platform": "windows",
+              "architecture": "x64",
+              "format": "zip",
+              "url": "http://127.0.0.1:48799/artifacts/tinadec-core-1.4.2-win-x64.zip",
+              "sizeBytes": 1024,
+              "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ],
+          "dependencies": [],
+          "releaseNotes": "fixture 版本，仅用于本地验证。"
+        }
+      ]
+    },
+    {
+      "id": "tinadec-gateway",
+      "name": "TinadecGateway",
+      "family": "gateway",
+      "description": "无状态 BFF/代理（fixture 提供版本）。",
+      "delivery": "bun-script",
+      "probe": "http-health",
+      "probeTarget": "http://127.0.0.1:48730/api/v1/health",
+      "expectedArtifact": "src/index.ts",
+      "allowMultipleInstances": false,
+      "supportsStandaloneLaunch": true,
+      "releases": [
+        {
+          "id": "tinadec-gateway-0.9.0",
+          "version": "0.9.0",
+          "channel": "stable",
+          "publishedAt": "2026-07-15T00:00:00.000Z",
+          "artifacts": [
+            {
+              "id": "tinadec-gateway-0.9.0-any",
+              "platform": "windows",
+              "architecture": "x64",
+              "format": "zip",
+              "url": "http://127.0.0.1:48799/artifacts/tinadec-gateway-0.9.0.zip",
+              "sizeBytes": 512,
+              "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ],
+          "dependencies": [
+            { "productId": "tinadec-core", "versionRange": ">=1.0.0", "optional": false }
+          ]
+        }
+      ]
+    }
+  ]
+}

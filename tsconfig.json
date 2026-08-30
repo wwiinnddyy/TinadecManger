@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/*"],
+      "shared/*": ["src/shared/*"],
+      "electrobun": ["src/types/electrobun.d.ts"],
+      "electrobun/view": ["src/types/electrobun.d.ts"]
+    },
+    "types": ["bun", "vite/client"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "electrobun.config.ts", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", ".hutch"]
+}
