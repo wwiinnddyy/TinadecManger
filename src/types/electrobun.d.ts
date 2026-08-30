@@ -75,23 +75,19 @@ declare module "electrobun" {
 declare module "electrobun/view" {
   export class Electroview {
     constructor(options: { rpc?: unknown });
-  }
-
-  export function defineElectrobunRPC(
-    role: "bun" | "webview",
-    options: {
+    static defineRPC(options: {
       maxRequestTime?: number;
       handlers: {
         requests: Record<string, (params: never) => unknown>;
         messages?: Record<string, unknown>;
       };
-    },
-  ): {
-    send(messageType: string, payload?: unknown): void;
-    request<T = unknown>(requestType: string, params?: unknown): Promise<T>;
-    addMessageListener(
-      messageType: string,
-      listener: (payload: unknown) => void,
-    ): void;
-  };
+    }): {
+      send(messageType: string, payload?: unknown): void;
+      request<T = unknown>(requestType: string, params?: unknown): Promise<T>;
+      addMessageListener(
+        messageType: string,
+        listener: (payload: unknown) => void,
+      ): void;
+    };
+  }
 }
