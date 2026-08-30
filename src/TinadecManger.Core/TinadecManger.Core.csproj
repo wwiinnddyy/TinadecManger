@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <RootNamespace>TinadecManger.Core</RootNamespace>
-    <Description>Tinadec ecosystem install registry, probing and lifecycle logic. No UI dependencies.</Description>
-  </PropertyGroup>
-
-</Project>
