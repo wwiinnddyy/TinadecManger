@@ -27,6 +27,6 @@
     },
     "types": ["bun", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "electrobun.config.ts", "vite.config.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "scripts/**/*.ts", "electrobun.config.ts", "vite.config.ts"],
   "exclude": ["node_modules", "dist", ".hutch"]
 }

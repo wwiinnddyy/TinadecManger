@@ -6,13 +6,14 @@
   "description": "Tinadec ecosystem desktop manager",
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "bun scripts/dev.ts",
+    "dev:browser": "vite --host 127.0.0.1",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "electrobun:dev": "vite build && electrobun dev --watch",
-    "electrobun:build": "vite build && electrobun build --env=stable"
+    "electrobun:build": "vite build && bun scripts/electrobun-cli.ts build --env=stable",
+    "electrobun:smoke": "vite build && bun scripts/electrobun-cli.ts build --env=dev"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

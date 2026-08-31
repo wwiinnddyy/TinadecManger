@@ -20,16 +20,18 @@ declare module "electrobun" {
     ): void;
   }
 
+  /** Size and position go through `frame`; there is no minimum-size option. */
   export interface BrowserWindowOptions {
     title?: string;
+    /** Accepts a `views://<view>/<file>` URL, an absolute URL, or a file path. */
     url?: string;
-    width?: number;
-    height?: number;
-    minWidth?: number;
-    minHeight?: number;
-    rpc?: unknown;
+    frame?: { x?: number; y?: number; width?: number; height?: number };
+    renderer?: "native" | "cef";
+    titleBarStyle?: "default" | "hidden" | "hiddenInset";
+    transparent?: boolean;
+    passthrough?: boolean;
     hidden?: boolean;
-    [key: string]: unknown;
+    rpc?: unknown;
   }
 
   export class BrowserWindow {
@@ -37,6 +39,8 @@ declare module "electrobun" {
     show(): void;
     hide(): void;
     close(): void;
+    setSize(width: number, height: number): unknown;
+    setFrame(x: number, y: number, width: number, height: number): unknown;
   }
 
   export interface TrayOptions {
@@ -70,6 +74,74 @@ declare module "electrobun" {
       };
     },
   ): ElectrobunRPCHandle;
+
+  /**
+   * Shape of `electrobun.config.ts`. Mirrors what the 1.16.0 CLI actually reads;
+   * the published tarball does not ship this type. Every field is optional
+   * because the CLI shallow-merges the file over its own defaults.
+   */
+  export interface ElectrobunConfig {
+    app?: {
+      name?: string;
+      identifier?: string;
+      version?: string;
+      description?: string;
+      urlSchemes?: string[];
+    };
+    build?: {
+      bun?: { entrypoint?: string };
+      /** key: repo-root-relative source; value: path under `<bundle>/Resources/app/`. */
+      copy?: Record<string, string>;
+      views?: Record<string, { entrypoint: string; [key: string]: unknown }>;
+      buildFolder?: string;
+      artifactFolder?: string;
+      /** Only honoured by `dev --watch` on POSIX; the CLI's ignore matching is `/`-only. */
+      watchIgnore?: string[];
+      watch?: string[];
+      useAsar?: boolean;
+      cefVersion?: string;
+      bunVersion?: string;
+      mac?: {
+        bundleCEF?: boolean;
+        bundleWGPU?: boolean;
+        defaultRenderer?: "native" | "cef";
+        chromiumFlags?: Record<string, string | boolean>;
+        entitlements?: Record<string, boolean | string | string[]>;
+        codesign?: boolean;
+        notarize?: boolean;
+        createDmg?: boolean;
+        /** Path to a `.iconset` directory; consumed by `iconutil`, macOS hosts only. */
+        icons?: string;
+      };
+      win?: {
+        bundleCEF?: boolean;
+        bundleWGPU?: boolean;
+        defaultRenderer?: "native" | "cef";
+        chromiumFlags?: Record<string, string | boolean>;
+        /** `.ico` preferred; a `.png` is converted single-size by `png-to-ico`. */
+        icon?: string;
+      };
+      linux?: {
+        bundleCEF?: boolean;
+        bundleWGPU?: boolean;
+        defaultRenderer?: "native" | "cef";
+        chromiumFlags?: Record<string, string | boolean>;
+        /** PNG, >=256px. Also the switch that makes the CLI emit a `.desktop` file. */
+        icon?: string;
+      };
+    };
+    release?: {
+      baseUrl?: string;
+      generatePatch?: boolean;
+    };
+    runtime?: Record<string, unknown>;
+    scripts?: {
+      preBuild?: string;
+      postBuild?: string;
+      postWrap?: string;
+      postPackage?: string;
+    };
+  }
 }
 
 declare module "electrobun/view" {

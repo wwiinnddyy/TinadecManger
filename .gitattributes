@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# bash rejects CRLF-terminated shebangs and heredocs
+*.sh text eol=lf

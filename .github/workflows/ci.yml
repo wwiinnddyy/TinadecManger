@@ -1,0 +1,101 @@
+name: ci
+
+# The packaging smoke here exists because a wrong `build.bun.entrypoint` or a
+# broken `build.copy` mapping cannot be reviewed in a diff: the CLI treats a
+# missing copy source as a warning and still exits 0, so the only cheap guard is
+# to actually package and inspect the result.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: TinadecManger
+  BUN_VERSION: "1.3.14"
+  ELECTROBUN_VERSION: "1.16.0"
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit and integration tests
+        run: bun run test
+
+      - name: Build renderer
+        run: bun run build
+
+      - name: Assert renderer bundle is complete
+        run: bash .github/scripts/assert-dist.sh
+
+  # --env=dev deliberately: it skips zstd/hdiutil/installer paths, and on Linux
+  # the dev bundle directory is kept rather than deleted after tarring.
+  package-smoke:
+    needs: checks
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux
+            arch: x64
+            runner: ubuntu-24.04
+          - label: win
+            arch: x64
+            runner: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - run: bun install --frozen-lockfile
+
+      - name: Restore Electrobun runtime downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules/electrobun/.cache
+            node_modules/electrobun/bin
+            node_modules/electrobun/dist-${{ matrix.label }}-${{ matrix.arch }}
+            node_modules/.electrobun-cache
+          key: electrobun-${{ env.ELECTROBUN_VERSION }}-${{ matrix.label }}-${{ matrix.arch }}
+
+      - name: Build renderer
+        run: bun run build
+
+      - name: Package (dev environment, no signing)
+        run: |
+          set -eo pipefail
+          bun run electrobun:smoke 2>&1 | tee electrobun-dev.log
+
+      - name: Fail on packaging warnings that mean a broken bundle
+        run: |
+          set -euo pipefail
+          patterns="failed to bundle|failed to copy|doesn't exist|Native wrapper not found|Cannot build macOS icons|Linux icon not found|Build failed|Failed to download"
+          if grep -viE "rcedit|Failed to embed icon" electrobun-dev.log | grep -iE "$patterns"; then
+            echo "::error::Electrobun reported a fatal packaging problem."
+            exit 1
+          fi
+
+      - name: Assert the built bundle contains the renderer
+        run: bash .github/scripts/assert-payload.sh "build/dev-${{ matrix.label }}-${{ matrix.arch }}" "$APP_NAME-dev"

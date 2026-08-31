@@ -3,6 +3,8 @@ node_modules/
 dist/
 build/
 out/
+artifacts/
+icon.iconset/
 *.tsbuildinfo
 
 # Logs

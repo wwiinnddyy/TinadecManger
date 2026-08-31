@@ -1,0 +1,286 @@
+name: release
+
+# Electrobun cannot cross-compile (its target is always the host OS/arch) and it
+# wipes `artifacts/` at the start of every build, so each target gets its own job
+# on its own OS, and each job renames its artifacts before uploading.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: TinadecManger
+  BUN_VERSION: "1.3.14"
+  ELECTROBUN_VERSION: "1.16.0"
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      is_tag: ${{ steps.meta.outputs.is_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit and integration tests
+        run: bun run test
+
+      - name: Resolve version and tag
+        id: meta
+        run: bash .github/scripts/release-meta.sh
+
+      - name: Check packaging inputs
+        run: |
+          set -euo pipefail
+          # A placeholder committed under these names would only ever show up as
+          # an icon-less package, because the CLI degrades icon failures to
+          # warnings.
+          ico="$(head -c 4 assets/tinadec-large.ico | od -An -tx1 | tr -d ' \n')"
+          png="$(head -c 4 assets/logo-white.png | od -An -tx1 | tr -d ' \n')"
+          test "$ico" = "00000100" || { echo "::error::assets/tinadec-large.ico is not an ICO (magic $ico)"; exit 1; }
+          test "$png" = "89504e47" || { echo "::error::assets/logo-white.png is not a PNG (magic $png)"; exit 1; }
+          echo "ok icon inputs"
+
+  build:
+    needs: gate
+    runs-on: ${{ matrix.runner }}
+    # Every step here is bash: the Windows and macOS runners default to pwsh,
+    # which does not understand `set -euo pipefail` or the /c/ path form.
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            label: macos
+            arch: arm64
+            extra_artifact: "*.dmg"
+          - runner: windows-latest
+            label: win
+            arch: x64
+            extra_artifact: "*-Setup.zip"
+          - runner: ubuntu-24.04
+            label: linux
+            arch: x64
+            extra_artifact: "*-Setup.tar.gz"
+          - runner: ubuntu-24.04-arm
+            label: linux
+            arch: arm64
+            extra_artifact: "*-Setup.tar.gz"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - run: bun install --frozen-lockfile
+
+      # The first build of a version downloads a ~40MB CLI and a ~50MB core
+      # runtime out of Electrobun's own GitHub Releases.
+      - name: Restore Electrobun runtime downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules/electrobun/.cache
+            node_modules/electrobun/bin
+            node_modules/electrobun/dist-${{ matrix.label }}-${{ matrix.arch }}
+            node_modules/.electrobun-cache
+          key: electrobun-${{ env.ELECTROBUN_VERSION }}-${{ matrix.label }}-${{ matrix.arch }}
+
+      - name: Build renderer
+        run: bun run build
+
+      - name: Assert renderer bundle is complete
+        run: bash .github/scripts/assert-dist.sh
+
+      - name: Generate the macOS iconset
+        if: matrix.label == 'macos'
+        run: |
+          set -euo pipefail
+          # iconutil is macOS-only, so the iconset has to be built on this job.
+          mkdir -p icon.iconset
+          for s in 16 32 128 256 512; do
+            sips -z "$s" "$s" assets/logo-white.png --out "icon.iconset/icon_${s}x${s}.png"
+            d=$((s * 2))
+            sips -z "$d" "$d" assets/logo-white.png --out "icon.iconset/icon_${s}x${s}@2x.png"
+          done
+          test "$(find icon.iconset -name '*.png' | wc -l)" -eq 10
+
+      # --env is mandatory: it defaults to dev, and the dev path emits no
+      # artifacts while still exiting 0.
+      #
+      # Run through scripts/electrobun-cli.ts so the CLI resolves `tar` to
+      # bsdtar on Windows — its bin shim extracts the core tarball using an
+      # absolute path that GNU tar reads as a remote host specifier.
+      - name: Package
+        run: |
+          set -eo pipefail
+          bun run electrobun:build 2>&1 | tee electrobun-build.log
+
+      - name: Fail on packaging warnings that mean a broken artifact
+        run: |
+          set -euo pipefail
+          # rcedit is excluded deliberately: the published native CLI shells out
+          # to a path baked in on Electrobun's own build machine
+          # (D:\a\electrobun\...), so embedding the .ico into launcher.exe,
+          # bun.exe and Setup.exe always fails on Windows. The Inno Setup
+          # installer below carries the real icon.
+          patterns="failed to bundle|failed to copy|doesn't exist|Native wrapper not found|zig-zstd not found|Cannot build macOS icons|Linux icon not found|Build failed|Failed to download"
+          if grep -viE "rcedit|Failed to embed icon" electrobun-build.log | grep -iE "$patterns"; then
+            echo "::error::Electrobun reported a fatal packaging problem."
+            exit 1
+          fi
+          echo "ok no fatal packaging warnings"
+
+      - name: Assert expected artifacts exist
+        run: |
+          set -euo pipefail
+          prefix="stable-${{ matrix.label }}-${{ matrix.arch }}"
+          test -s "artifacts/$prefix-update.json"
+          ls -l artifacts
+          compgen -G "artifacts/$prefix-$APP_NAME*.tar.zst" >/dev/null || {
+            echo "::error::missing $prefix-$APP_NAME*.tar.zst"; exit 1; }
+          compgen -G "artifacts/$prefix-$APP_NAME${{ matrix.extra_artifact }}" >/dev/null || {
+            echo "::error::missing $prefix-$APP_NAME${{ matrix.extra_artifact }}"; exit 1; }
+
+      - name: Assert the payload really contains the renderer
+        run: |
+          set -euo pipefail
+          prefix="stable-${{ matrix.label }}-${{ matrix.arch }}"
+          archive="$(ls artifacts/$prefix-$APP_NAME*.tar.zst | head -1)"
+          bash .github/scripts/unpack-artifact.sh \
+            "$archive" unpacked \
+            "node_modules/electrobun/dist-${{ matrix.label }}-${{ matrix.arch }}"
+          bash .github/scripts/assert-payload.sh unpacked "$APP_NAME"
+
+      # Electrobun's own Windows installer is not a single file: Setup.exe is a
+      # bare extractor that expects its .tar.zst payload beside it. Inno Setup
+      # produces the one-file artifact.
+      - name: Build single-file Windows installer
+        if: matrix.label == 'win'
+        run: |
+          set -euo pipefail
+          choco install innosetup --no-progress --yes
+          iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          test -f "$iscc" || { echo "::error::ISCC.exe not found after installing Inno Setup"; exit 1; }
+          # ISCC is a Windows binary: it cannot resolve an MSYS-style /d/a/... path.
+          out_dir="$(cygpath -w "$PWD/artifacts")"
+          "$iscc" "/DVersion=${{ needs.gate.outputs.version }}" \
+            "/DOutputDir=$out_dir" .github/innosetup/installer.iss
+          test -s "artifacts/$APP_NAME-Setup-${{ needs.gate.outputs.version }}-win-x64.exe"
+          ls -l artifacts
+
+      # artifacts/ is recreated by the next build, so it has to leave the job
+      # under a unique name.
+      - name: Stage artifacts
+        run: mv artifacts "artifacts-stable-${{ matrix.label }}-${{ matrix.arch }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.label }}-${{ matrix.arch }}
+          path: artifacts-*/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Save Electrobun runtime downloads
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules/electrobun/.cache
+            node_modules/electrobun/bin
+            node_modules/electrobun/dist-${{ matrix.label }}-${{ matrix.arch }}
+            node_modules/.electrobun-cache
+          key: electrobun-${{ env.ELECTROBUN_VERSION }}-${{ matrix.label }}-${{ matrix.arch }}
+
+  appimage:
+    needs: [gate, build]
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+            appimage_arch: x86_64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            appimage_arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-linux-${{ matrix.arch }}
+          path: in
+
+      # Electrobun 1.16.0 removed AppImage on purpose ("to avoid the libfuse2
+      # dependency") and ships a directory bundle instead, so the AppImage is
+      # assembled here from that bundle.
+      - name: Assemble and pack the AppDir
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          APPIMAGE_ARCH: ${{ matrix.appimage_arch }}
+        run: bash .github/scripts/build-appimage.sh ${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage-${{ matrix.arch }}
+          path: out/*.AppImage
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: [gate, build, appimage]
+    if: needs.gate.outputs.is_tag == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: pkg
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: appimage-*
+          path: pkg
+          merge-multiple: true
+
+      - name: Refuse an empty or truncated release
+        run: |
+          set -euo pipefail
+          test -n "$(ls -A pkg)"
+          empty="$(find pkg -type f -size 0 | head -1)"
+          if [ -n "$empty" ]; then echo "::error::$empty is zero bytes"; exit 1; fi
+          ls -la pkg
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: pkg/*
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body_path: .github/release-notes.md

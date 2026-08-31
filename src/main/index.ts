@@ -158,16 +158,13 @@ void ({} as ManagerApiSchema); // keep the contract import checked
 
 // ---- window + tray ----
 
-const isDev = process.argv.includes("--dev");
-const rendererUrl = isDev ? "http://127.0.0.1:5173" : "views/mainview/index.html";
+const rendererUrl =
+  process.env["TINADEC_RENDERER_URL"] ?? "views://mainview/index.html";
 
 const win = new BrowserWindow({
   title: "Tinadec Manager",
   url: rendererUrl,
-  width: 1280,
-  height: 820,
-  minWidth: 980,
-  minHeight: 620,
+  frame: { width: 1280, height: 820 },
   rpc,
 });
 
