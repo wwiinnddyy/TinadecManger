@@ -1,3 +1,4 @@
+@import "@fontsource-variable/geist";
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -120,8 +121,8 @@
   body {
     @apply bg-background text-foreground;
     font-family:
-      "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI",
-      "Microsoft YaHei", system-ui, sans-serif;
+      "Geist Variable", "Segoe UI Variable Text", "Segoe UI",
+      "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
     font-size: 14px;
     user-select: none;
   }

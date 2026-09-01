@@ -7,6 +7,7 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { BrandLogo, TinadecCalligraphy } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -57,16 +58,14 @@ export function AppShell() {
     <div className="bg-background text-foreground flex h-screen w-screen overflow-hidden">
       {/* 侧边导航 */}
       <aside className="bg-sidebar flex w-14 flex-col items-center gap-1 border-r py-3 lg:w-52 lg:items-stretch lg:px-3">
-        <div className="mb-3 flex items-center gap-2 px-1.5">
-          <img
-            src="../../../assets/tinadec-logo.png"
-            alt="Tinadec"
-            className="size-7 rounded-md object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-          <span className="hidden text-sm font-semibold lg:block">Tinadec 管理器</span>
+        <div className="mb-3 flex items-center gap-2 px-1.5" title="Tinadec 管理器">
+          <BrandLogo size={18} className="text-sidebar-foreground" />
+          <div className="hidden min-w-0 flex-col lg:flex">
+            <TinadecCalligraphy size={14} className="text-sidebar-foreground" />
+            <span className="text-sidebar-foreground/70 mt-1 truncate text-xs leading-none">
+              管理器
+            </span>
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           {NAV_ITEMS.map((item) => (

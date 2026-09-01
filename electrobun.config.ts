@@ -16,6 +16,8 @@ export default {
     copy: {
       "dist/index.html": "views/mainview/index.html",
       "dist/assets": "views/mainview/assets",
+      // A publicDir asset lands in dist/ root, so it needs its own entry.
+      "dist/favicon.svg": "views/mainview/favicon.svg",
     },
     mac: {
       bundleCEF: false,
