@@ -39,6 +39,10 @@ TinadecOffice 根目录适用 `GPL-3.0-or-later`，TinadecCore 适用 `MIT`。
 `apps/desktop/public/Logo - 白.png`（即本仓库的 `logo-white.png`）标注为
 `Copyright (c) 2026 Lincube, all rights reserved`，并注明「不受 GPL/AGPL/MIT 覆盖，
 使用需获授权」。该文件当前用于 `electrobun.config.ts` 的 Linux 图标与
-`.github/workflows/release.yml` 的 mac iconset 生成输入，因此它不在上述兼容性结论之内：
-对外发布前需要单独取得 Lincube 授权，或改用其他方形源图替换。本仓库其余品牌素材
+`.github/workflows/release.yml` 的 mac iconset 生成输入。
+
+两个仓库的版权人同为 Lincube（TinadecOffice 根 `LICENSE` 为 `Copyright (c) 2026 Lincube`，
+本仓库提交者为 `lincube`），因此本仓库内对该素材的使用由版权方自身许可，不走
+GPL/AGPL 兼容性判定。该保留权利条款约束的是仓库之外的接收方：任何衍生项目要复用
+`logo-white.png`，仍需单独取得 Lincube 许可。本仓库其余品牌素材
 （`tinadec-logo.png`、`tinadec-large.ico`、`favicon.svg`、两条 SVG path）未被该例外条目列出。
