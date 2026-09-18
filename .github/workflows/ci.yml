@@ -47,7 +47,7 @@ jobs:
   # the dev bundle directory is kept rather than deleted after tarring.
   package-smoke:
     needs: checks
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     defaults:
       run:
         shell: bash
@@ -98,4 +98,4 @@ jobs:
           fi
 
       - name: Assert the built bundle contains the renderer
-        run: bash .github/scripts/assert-payload.sh "build/dev-${{ matrix.label }}-${{ matrix.arch }}" "$APP_NAME-dev"
+        run: bash .github/scripts/assert-payload.sh "build/dev-${{ matrix.label }}-${{ matrix.arch }}" "$APP_NAME-dev" "${{ matrix.label }}"

@@ -168,7 +168,7 @@ jobs:
           bash .github/scripts/unpack-artifact.sh \
             "$archive" unpacked \
             "node_modules/electrobun/dist-${{ matrix.label }}-${{ matrix.arch }}"
-          bash .github/scripts/assert-payload.sh unpacked "$APP_NAME"
+          bash .github/scripts/assert-payload.sh unpacked "$APP_NAME" "${{ matrix.label }}"
 
       # Electrobun's own Windows installer is not a single file: Setup.exe is a
       # bare extractor that expects its .tar.zst payload beside it. Inno Setup
@@ -182,8 +182,12 @@ jobs:
           test -f "$iscc" || { echo "::error::ISCC.exe not found after installing Inno Setup"; exit 1; }
           # ISCC is a Windows binary: it cannot resolve an MSYS-style /d/a/... path.
           out_dir="$(cygpath -w "$PWD/artifacts")"
-          "$iscc" "/DVersion=${{ needs.gate.outputs.version }}" \
-            "/DOutputDir=$out_dir" .github/innosetup/installer.iss
+          # Switches must use the -D form, not Inno's /D: this job runs under Git
+          # Bash, whose MSYS layer rewrites any argument starting with "/" into a
+          # Windows path, so /DVersion=... arrives as a second script filename and
+          # ISCC aborts with "You may not specify more than one script filename."
+          "$iscc" "-DVersion=${{ needs.gate.outputs.version }}" \
+            "-DOutputDir=$out_dir" .github/innosetup/installer.iss
           test -s "artifacts/$APP_NAME-Setup-${{ needs.gate.outputs.version }}-win-x64.exe"
           ls -l artifacts
 
