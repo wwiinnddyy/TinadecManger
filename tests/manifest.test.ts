@@ -81,6 +81,29 @@ describe("manifest validation (fail closed)", () => {
     expect(issues.some((i) => i.message.includes("optional"))).toBe(true);
   });
 
+  it("accepts an Office agent-pack product", () => {
+    // Measured against a real generated channel catalog: TinadecOffice emits a product with
+    // family/delivery `agent-pack`, and a missing value here made assertManifestOrThrow reject the
+    // *whole* catalog — the pack ships, and the Manager refuses to read any of it.
+    const manifest = clone(fixture);
+    const product = (manifest.products as Record<string, unknown>[])[0];
+    product.family = "agent-pack";
+    product.delivery = "agent-pack";
+    product.probe = "file-only";
+    product.probeTarget = "";
+    expect(validateManifest(manifest)).toEqual([]);
+  });
+
+  it("still rejects families and deliveries that do not exist", () => {
+    const manifest = clone(fixture);
+    const product = (manifest.products as Record<string, unknown>[])[0];
+    product.family = "spreadsheet";
+    product.delivery = "carrier-pigeon";
+    const issues = validateManifest(manifest);
+    expect(issues.some((i) => i.path.endsWith(".family"))).toBe(true);
+    expect(issues.some((i) => i.path.endsWith(".delivery"))).toBe(true);
+  });
+
   it("aggregates issues instead of throwing in validateManifest", () => {
     const issues = validateManifest(null);
     expect(issues).toHaveLength(1);

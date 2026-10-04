@@ -21,13 +21,14 @@ export interface ValidationIssue {
 const ID_RE = /^[a-z0-9][a-z0-9-._]{1,63}$/;
 const HASH_RE = /^[a-f0-9]{64}$/;
 const URL_RE = /^https?:\/\//i;
-const VALID_FAMILIES = new Set(["core", "gateway", "tools", "app"]);
+const VALID_FAMILIES = new Set(["core", "gateway", "tools", "app", "agent-pack"]);
 const VALID_DELIVERY = new Set([
   "dotnet-publish-dir",
   "native-exe",
   "bun-script",
   "portable-exe",
   "yui-app",
+  "agent-pack",
 ]);
 const VALID_PROBE = new Set(["http-health", "process-name", "file-only"]);
 const VALID_PLATFORMS = new Set(["windows", "macos", "linux"]);
