@@ -13,6 +13,7 @@ export const ProductFamily = {
   Gateway: "gateway",
   Tools: "tools",
   App: "app",
+  AgentPack: "agent-pack",
 } as const;
 export type ProductFamily = (typeof ProductFamily)[keyof typeof ProductFamily];
 
@@ -26,6 +27,7 @@ export const DeliveryKind = {
   BunScript: "bun-script",
   PortableExe: "portable-exe",
   YuiApp: "yui-app",
+  AgentPack: "agent-pack",
 } as const;
 export type DeliveryKind = (typeof DeliveryKind)[keyof typeof DeliveryKind];
 
@@ -62,6 +64,20 @@ export const ArtifactFormat = {
   Executable: "executable",
 } as const;
 export type ArtifactFormat = (typeof ArtifactFormat)[keyof typeof ArtifactFormat];
+
+export const PackageKind = {
+  RuntimeModule: "runtime-module",
+  AgentPack: "agent-pack",
+  FullInstaller: "full-installer",
+} as const;
+export type PackageKind = (typeof PackageKind)[keyof typeof PackageKind];
+
+export const RuntimeRole = {
+  Core: "core",
+  Gateway: "gateway",
+  Tools: "tools",
+} as const;
+export type RuntimeRole = (typeof RuntimeRole)[keyof typeof RuntimeRole];
 
 export const InstallationSource = {
   Catalog: "catalog",
@@ -168,6 +184,28 @@ export interface Artifact {
   signature?: ArtifactSignature;
 }
 
+/** Metadata embedded in an Office artifact and mirrored in the catalog. */
+export interface ReleasePackageMetadata {
+  schemaVersion: 1;
+  kind: PackageKind;
+  productLine: string;
+  productId: string;
+  component: string;
+  releaseVersion: string;
+  packageVersion: string;
+  platform?: Platform;
+  architecture?: Architecture;
+  entrypoint?: string;
+  expectedFiles?: string[];
+  agentPack?: {
+    packId: string;
+    digest: string;
+    minimumCoreVersion: string;
+    manifestPath: string;
+    envelopePath: string;
+  };
+}
+
 export interface Release {
   id: string;
   version: string;
@@ -177,6 +215,7 @@ export interface Release {
   dependencies: ProductDependency[];
   minimumManagerVersion?: string;
   releaseNotes?: string;
+  packageMetadata?: ReleasePackageMetadata;
 }
 
 /** A known Tinadec product, independent of any local installation. */
@@ -192,6 +231,12 @@ export interface ProductDefinition {
   allowMultipleInstances: boolean;
   supportsStandaloneLaunch: boolean;
   releases: Release[];
+  /** Optional product-line metadata; omitted for legacy catalog entries. */
+  productLine?: string;
+  packageKind?: PackageKind;
+  runtimeRole?: RuntimeRole;
+  capabilities?: string[];
+  installable?: boolean;
 }
 
 export interface CatalogManifest {
@@ -208,6 +253,13 @@ export interface InstallationRecord {
   productId: string;
   path: string;
   executable?: string;
+  productLine?: string;
+  packageKind?: PackageKind;
+  runtimeRole?: RuntimeRole;
+  artifactId?: string;
+  artifactSha256?: string;
+  packageVersion?: string;
+  agentPack?: ReleasePackageMetadata["agentPack"];
   endpointOverride?: string;
   registeredAt: IsoDateTime;
   updatedAt: IsoDateTime;
